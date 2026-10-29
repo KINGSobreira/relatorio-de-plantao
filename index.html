@@ -116,12 +116,26 @@ dialog .df{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100vw - 32px)}
 .done{display:flex;flex-direction:column;gap:12px}
 .done h2{color:var(--accent)}
+.fotos-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:6px}
+.fotos-head h3{font:700 13px var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0}
+.fotos-btns{display:flex;gap:8px;flex-wrap:wrap}
+.fotos-btns label{cursor:pointer}
+.fotos-btns input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.fotos-btns label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.foto{margin:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+.foto img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#000}
+.foto .fb{padding:8px;display:flex;flex-direction:column;gap:6px}
+.foto input{padding:7px 8px;font-size:13px;background:var(--surface)}
+.foto-vazio{font-size:14px;color:var(--muted);padding:14px;border:1px dashed var(--line);border-radius:8px;text-align:center;margin-top:12px}
 footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
 </style>
 <script>
   /* CONFIGURAÇÃO: cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec) */
   window.API_URL="COLE_AQUI_A_URL_DO_APPS_SCRIPT";
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
 </head>
 <body>
 
@@ -170,6 +184,19 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
         <label class="f"><span>KM inicial <em>*</em></span><input id="kmInicial" inputmode="numeric" required placeholder="Ex.: 178.087"><small class="hint" id="kmHint" hidden></small></label>
         <label class="f"><span>KM final <em>*</em></span><input id="kmFinal" inputmode="numeric" required placeholder="Ex.: 178.279"></label>
         <label class="f full"><span>KM percorrido (calculado)</span><input id="kmPercorrido" readonly tabindex="-1" value="—"></label>
+        <div class="full sub-fotos">
+          <div class="fotos-head">
+            <h3>Fotos da viatura <span id="fotoCount" class="hint" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h3>
+            <div class="fotos-btns">
+              <label class="btn primary small"><input type="file" id="inCamera" accept="image/*" capture="environment">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Tirar foto</label>
+              <label class="btn ghost small"><input type="file" id="inGaleria" accept="image/*" multiple>Escolher da galeria</label>
+            </div>
+          </div>
+          <p class="hint" style="margin:6px 0 0">Registre a situação da viatura: frente, traseira, laterais, painel com o odômetro e qualquer avaria. Cada foto recebe data e hora e entra no PDF.</p>
+          <div id="fotoGrid" class="foto-grid"></div>
+          <datalist id="lista-leg"><option value="Frente"><option value="Traseira"><option value="Lateral esquerda"><option value="Lateral direita"><option value="Painel / odômetro"><option value="Interior"><option value="Pneus"><option value="Avaria"></datalist>
+        </div>
       </div>
     </section>
 
@@ -216,23 +243,23 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
   <aside class="col preview">
     <section class="panel" id="previewPanel">
       <h2>Prévia do relatório</h2>
-      <p class="lead" style="margin-bottom:12px">É este texto que vai para a planilha e para o WhatsApp.</p>
+      <p class="lead" style="margin-bottom:12px">Conteúdo que vai para o PDF. As fotos da viatura entram no final.</p>
       <pre id="preview"></pre>
       <div id="formMsg" class="msg err" hidden style="margin-bottom:12px"></div>
       <div class="actions">
-        <button type="button" class="btn primary block" id="btnEnviar">Enviar relatório</button>
-        <button type="button" class="btn ghost block" id="btnCopiar">Copiar texto</button>
+        <button type="button" class="btn primary block" id="btnEnviar">Gerar PDF e enviar</button>
+        <button type="button" class="btn ghost block" id="btnPrevPdf">Ver PDF antes de enviar</button>
         <button type="button" class="btn danger block" id="btnLimpar">Limpar formulário</button>
       </div>
     </section>
 
     <section class="panel done" id="donePanel" hidden>
-      <h2>Relatório enviado</h2>
-      <p class="lead" style="margin:0" id="doneTxt">O relatório foi gravado na planilha. Agora mande no grupo do WhatsApp.</p>
-      <a class="btn wa block" id="btnWa" target="_blank" rel="noopener">
+      <h2>PDF gerado</h2>
+      <p class="lead" style="margin:0" id="doneTxt"></p>
+      <button type="button" class="btn wa block" id="btnShare">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4a.5.5 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 2.9 2.9 0 0 0-.9 2.2 5 5 0 0 0 1 2.7 11.5 11.5 0 0 0 4.4 3.9c1.6.7 2.3.7 3.1.6a2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .2-1.2c-.1-.1-.3-.2-.6-.3Z"/></svg>
-        Enviar no WhatsApp</a>
-      <button type="button" class="btn ghost block" id="btnCopiar2">Copiar texto</button>
+        Enviar PDF no WhatsApp</button>
+      <button type="button" class="btn ghost block" id="btnBaixar">Baixar PDF</button>
       <button type="button" class="btn ghost block" id="btnNovo">Começar novo relatório</button>
     </section>
   </aside>
@@ -242,7 +269,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
   <!-- ============ RELATÓRIOS ENVIADOS ============ -->
   <section class="panel" id="view-lista" hidden>
     <h2>Relatórios enviados</h2>
-    <p class="lead">Todos os relatórios gravados na planilha. Toque em <b>Ver</b> para abrir o texto completo.</p>
+    <p class="lead">Todos os relatórios gravados na planilha. Toque em <b>Ver</b> para ler o relatório e abrir o PDF.</p>
     <div class="toolbar">
       <label class="f"><span>Supervisor</span><select id="fSup"><option value="">Todos</option></select></label>
       <label class="f"><span>De</span><input type="date" id="fDe"></label>
@@ -264,7 +291,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
 <dialog id="dlg">
   <div class="dh"><h3 id="dlgTitle">Relatório</h3><button type="button" class="btn ghost small" data-close>Fechar</button></div>
   <div class="db"><pre id="dlgText"></pre></div>
-  <div class="df"><button type="button" class="btn ghost" id="dlgCopy">Copiar texto</button><a class="btn wa" id="dlgWa" target="_blank" rel="noopener">Enviar no WhatsApp</a></div>
+  <div class="df"><span class="status" id="dlgSemPdf" hidden>PDF não disponível para este relatório.</span><a class="btn primary" id="dlgPdf" target="_blank" rel="noopener">Abrir PDF</a></div>
 </dialog>
 
 <script>
@@ -297,11 +324,6 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
   const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
   const plural=(n,s,p)=>n===1?s:p;
   function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2600)}
-  async function copiar(t){
-    try{await navigator.clipboard.writeText(t);toast("Texto copiado.")}
-    catch(e){const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("Texto copiado.")}catch(_){toast("Não foi possível copiar.")}ta.remove()}
-  }
-  const waLink=t=>"https://wa.me/?text="+encodeURIComponent(t);
 
   /* ---------- abas ---------- */
   document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
@@ -369,24 +391,148 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
     L.push("* Faltas no efetivo: "+f(d.faltasEfetivo),"* Vigilantes reservas informados: "+f(d.reservasInformados),
       "* Local de referência: "+(d.localReferencia||"Não informado"),"");
     L.push("✅ CONSIDERAÇÕES FINAIS","");
-    // resumo automático
+    paragrafos(d).forEach(p=>L.push(p,""));
+    if(fotos.length)L.push("📷 FOTOS DA VIATURA: "+pad2(fotos.length)+" (no PDF)","");
+    L.push("SUPERVISOR RESPONSÁVEL:",(d.supervisor||"—").toUpperCase());
+    return L.join("\n");
+  }
+  function paragrafos(d){
+    const L=[],nOc=d.ocorrencias.length;
     const pv=parseInt(d.postosVisitados,10)||0,fr=parseInt(d.faltasRegistradas,10)||0;
     let abre="Plantão realizado com "+pad2(pv)+" "+plural(pv,"posto visitado","postos visitados")+
       (d.km!=null?", totalizando "+kmFmt(d.km)+" km percorridos":"");
     if(fr===0)abre+=", sem registro de faltas.";
     else abre+=", com registro de "+pad2(fr)+" "+plural(fr,"falta","faltas")+(d.faltasCobertas?", "+plural(fr,"devidamente coberta","devidamente cobertas")+" em tempo hábil.":".");
-    L.push(abre,"");
-    if(nOc>0){
-      L.push("Houve "+pad2(nOc)+" "+plural(nOc,"ocorrência/condução registrada","ocorrências/conduções registradas")+": "+
-        d.ocorrencias.map(o=>[o.posto,o.destino].filter(Boolean).join(" – ")).join("; ")+".","");
-    }
-    d.fatos.split(/\n\s*\n|\n/).map(s=>s.trim()).filter(Boolean).forEach(p=>L.push(p,""));
-    if(d.sincronizacao==="inconsistencia")L.push("Ressalta-se que o procedimento de sincronização da rota foi devidamente realizado. Entretanto, as informações não foram atualizadas no aplicativo, permanecendo a inconsistência no sistema.","");
-    if(d.sincronizacao==="nao")L.push("Registra-se que a sincronização da rota não foi realizada"+(d.sincronizacaoObs?": "+d.sincronizacaoObs.replace(/\.$/,"")+".":"."),"");
-    if(d.horaFim&&d.dataFim)L.push("O plantão foi encerrado às "+hora(d.horaFim)+" do dia "+dataBR(d.dataFim)+", com as atividades e ocorrências devidamente registradas.","");
-    L.push("SUPERVISOR RESPONSÁVEL:",(d.supervisor||"—").toUpperCase());
-    return L.join("\n");
+    L.push(abre);
+    if(nOc>0)L.push("Houve "+pad2(nOc)+" "+plural(nOc,"ocorrência/condução registrada","ocorrências/conduções registradas")+": "+
+      d.ocorrencias.map(o=>[o.posto,o.destino].filter(Boolean).join(" – ")).join("; ")+".");
+    d.fatos.split(/\n/).map(s=>s.trim()).filter(Boolean).forEach(p=>L.push(p));
+    if(d.sincronizacao==="inconsistencia")L.push("Ressalta-se que o procedimento de sincronização da rota foi devidamente realizado. Entretanto, as informações não foram atualizadas no aplicativo, permanecendo a inconsistência no sistema.");
+    if(d.sincronizacao==="nao")L.push("Registra-se que a sincronização da rota não foi realizada"+(d.sincronizacaoObs?": "+d.sincronizacaoObs.replace(/\.$/,"")+".":"."));
+    if(d.horaFim&&d.dataFim)L.push("O plantão foi encerrado às "+hora(d.horaFim)+" do dia "+dataBR(d.dataFim)+", com as atividades e ocorrências devidamente registradas.");
+    return L;
   }
+
+  /* ---------- fotos da viatura (guardadas no aparelho até o envio) ---------- */
+  let fotos=[];
+  const idb=(()=>{
+    let p=null;
+    function abrir(){if(p)return p;p=new Promise((res,rej)=>{try{const r=indexedDB.open("plantao",1);
+      r.onupgradeneeded=()=>r.result.createObjectStore("fotos",{keyPath:"id"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});return p}
+    async function tx(modo,fn){const db=await abrir();return new Promise((res,rej)=>{const t=db.transaction("fotos",modo);const rq=fn(t.objectStore("fotos"));
+      t.oncomplete=()=>res(rq?rq.result:undefined);t.onerror=()=>rej(t.error)})}
+    return{all:()=>tx("readonly",s=>s.getAll()).catch(()=>[]),put:f=>tx("readwrite",s=>s.put(f)).catch(()=>{}),
+      del:id=>tx("readwrite",s=>s.delete(id)).catch(()=>{}),clear:()=>tx("readwrite",s=>s.clear()).catch(()=>{})};
+  })();
+  function carimbo(){const d=new Date();return d.toLocaleDateString("pt-BR")+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+  function comprimir(file,quando){return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const MAX=1400;let w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,MAX/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+      const c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d");g.drawImage(img,0,0,w,h);
+      const fs=Math.max(14,Math.round(w/38));g.font="600 "+fs+"px sans-serif";const tw=g.measureText(quando).width;
+      g.fillStyle="rgba(0,0,0,.55)";g.fillRect(w-tw-fs*1.2,h-fs*1.9,tw+fs*1.2,fs*1.9);g.fillStyle="#fff";g.fillText(quando,w-tw-fs*.6,h-fs*.6);
+      URL.revokeObjectURL(url);res({data:c.toDataURL("image/jpeg",.72),w:w,h:h});
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Não foi possível abrir a imagem."))};
+    img.src=url;
+  })}
+  async function addFotos(files){
+    for(const f of files){
+      if(!/^image\//.test(f.type))continue;
+      try{const q=carimbo(),r=await comprimir(f,q);const foto={id:uid(),data:r.data,w:r.w,h:r.h,legenda:"",quando:q,ordem:Date.now()};
+        fotos.push(foto);idb.put(foto)}catch(e){toast(e.message)}
+    }
+    renderFotos();atualizar();
+  }
+  function renderFotos(){
+    $("fotoCount").textContent=fotos.length?"("+fotos.length+")":"";
+    $("fotoGrid").innerHTML=fotos.length?fotos.map((f,i)=>`<figure class="foto"><img src="${f.data}" alt="Foto ${i+1} da viatura">
+      <div class="fb"><input data-leg="${f.id}" list="lista-leg" value="${esc(f.legenda)}" placeholder="Legenda (ex.: Frente)" aria-label="Legenda da foto ${i+1}">
+      <button type="button" class="btn danger small" data-rmf="${f.id}">Remover</button></div></figure>`).join("")
+      :'<div class="foto-vazio" style="grid-column:1/-1">Nenhuma foto ainda.</div>';
+  }
+  ["inCamera","inGaleria"].forEach(id=>$(id).addEventListener("change",e=>{const fs=[...e.target.files];e.target.value="";addFotos(fs)}));
+  $("fotoGrid").addEventListener("input",e=>{const id=e.target.dataset.leg;if(!id)return;const f=fotos.find(x=>x.id===id);if(f){f.legenda=e.target.value;idb.put(f)}});
+  $("fotoGrid").addEventListener("click",e=>{const id=e.target.dataset.rmf;if(!id)return;fotos=fotos.filter(x=>x.id!==id);idb.del(id);renderFotos();atualizar()});
+
+  /* ---------- PDF ---------- */
+  let logoCache;
+  async function logoDataUrl(){
+    if(logoCache!==undefined)return logoCache;
+    try{const b=await (await fetch("logo-servnac.png")).blob();
+      logoCache=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=()=>r(null);fr.readAsDataURL(b)})}
+    catch(e){logoCache=null}
+    return logoCache;
+  }
+  async function gerarPDF(d){
+    if(!window.jspdf||!window.jspdf.jsPDF)throw new Error("O gerador de PDF não carregou. Verifique a internet e recarregue a página.");
+    const doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
+    if(typeof doc.autoTable!=="function")throw new Error("O gerador de PDF não carregou. Verifique a internet e recarregue a página.");
+    const W=210,H=297,M=14,VERDE=[20,83,45],VERDE2=[31,122,69],CINZA=[93,106,99],TINTA=[29,36,32],LINHA=[216,224,219],FUNDO=[245,247,245];
+    const per=d.dataInicio?(dataBR(d.dataInicio)+(d.dataFim&&d.dataFim!==d.dataInicio?" a "+dataBR(d.dataFim):"")):"—";
+    const logo=await logoDataUrl();
+    // cabeçalho
+    doc.setFillColor(...VERDE);doc.rect(0,0,W,3.5,"F");
+    if(logo)doc.addImage(logo,"PNG",M,9,34,10);
+    doc.setFont("helvetica","bold");doc.setFontSize(17);doc.setTextColor(...VERDE);doc.text("RELATÓRIO DE PLANTÃO",W-M,14.5,{align:"right"});
+    doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.setTextColor(...CINZA);
+    doc.text("Período: "+per+"   |   Supervisor: "+d.supervisor,W-M,20.5,{align:"right"});
+    doc.setDrawColor(...VERDE2);doc.setLineWidth(.6);doc.line(M,25,W-M,25);
+    let y=31;
+    const base={theme:"grid",styles:{font:"helvetica",fontSize:9.5,cellPadding:2.2,lineColor:LINHA,lineWidth:.2,textColor:TINTA,overflow:"linebreak"},
+      headStyles:{fillColor:VERDE,textColor:255,fontStyle:"bold",fontSize:10}};
+    const tab=(titulo,rows,left,right,larg)=>{doc.autoTable(Object.assign({},base,{startY:y,margin:{left:left,right:right},
+      head:[[{content:titulo,colSpan:2}]],body:rows,columnStyles:{0:{cellWidth:larg,fontStyle:"bold",fillColor:FUNDO}}}));return doc.lastAutoTable.finalY};
+    const par=(t1,r1,t2,r2)=>{const meio=W/2+2.5;const y1=tab(t1,r1,M,W-meio+5,36);const y2=tab(t2,r2,meio,M,40);y=Math.max(y1,y2)+5};
+    const f=v=>v===""?"—":pad2(v);
+    par("DADOS DA VIATURA",[["VTR",d.vtr],["Placa",d.placa],["KM inicial",kmFmt(d.kmI)],["KM final",kmFmt(d.kmF)],["KM percorrido",d.km!=null?kmFmt(d.km)+" km":"—"]],
+      "HORÁRIOS DO PLANTÃO",[["Início do plantão",hora(d.horaInicio)+" – "+dataBR(d.dataInicio)],["Início da rota",hora(d.inicioRota)],["Término da rota",hora(d.horaFim)+" – "+dataBR(d.dataFim)]]);
+    par("RONDAS E VISITAS",[["Postos visitados",f(d.postosVisitados)],["Faltas registradas",f(d.faltasRegistradas)+(parseInt(d.faltasRegistradas,10)>0?(d.faltasCobertas?" (cobertas em tempo hábil)":" (não cobertas)"):"")],["Sincronização da rota",textoSync(d)]],
+      "EFETIVO / RESERVA",[["Faltas no efetivo",f(d.faltasEfetivo)],["Reservas informados",f(d.reservasInformados)],["Local de referência",d.localReferencia||"Não informado"]]);
+    // ocorrências
+    const oc=d.ocorrencias;
+    doc.autoTable(Object.assign({},base,{startY:y,margin:{left:M,right:M},
+      head:[[{content:"OCORRÊNCIA / CONDUÇÃO  –  Quantidade: "+pad2(oc.length),colSpan:3}]],
+      body:oc.length?[[{content:"Nº",styles:{fontStyle:"bold",fillColor:FUNDO}},{content:"Destino",styles:{fontStyle:"bold",fillColor:FUNDO}},{content:"Posto",styles:{fontStyle:"bold",fillColor:FUNDO}}]]
+        .concat(oc.map((o,i)=>[pad2(i+1),o.destino,o.posto])):[[{content:"Nenhuma ocorrência ou condução registrada.",colSpan:3,styles:{textColor:CINZA}}]],
+      columnStyles:{0:{cellWidth:14}}}));
+    y=doc.lastAutoTable.finalY+7;
+    // considerações
+    const novaPag=need=>{if(y+need>H-18){doc.addPage();y=18}};
+    const titulo=t=>{novaPag(14);doc.setFillColor(...VERDE);doc.rect(M,y,W-2*M,7.5,"F");doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(255);doc.text(t,M+2.2,y+5.1);y+=12};
+    titulo("CONSIDERAÇÕES FINAIS");
+    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...TINTA);
+    paragrafos(d).forEach(p=>{const ls=doc.splitTextToSize(p,W-2*M-2);ls.forEach(l=>{novaPag(6);doc.text(l,M+1,y);y+=5});y+=2.5});
+    // assinatura
+    novaPag(30);y+=12;doc.setDrawColor(...TINTA);doc.setLineWidth(.3);doc.line(W/2-40,y,W/2+40,y);
+    doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(d.supervisor.toUpperCase(),W/2,y+5,{align:"center"});
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...CINZA);doc.text("Supervisor responsável",W/2,y+9.5,{align:"center"});y+=18;
+    // fotos
+    if(fotos.length){
+      novaPag(80);titulo("REGISTRO FOTOGRÁFICO DA VIATURA  –  "+d.vtr+" / "+d.placa);
+      const gap=6,cw=(W-2*M-gap)/2,chMax=68;let col=0,rowH=0;
+      fotos.forEach((ft,i)=>{
+        const k=Math.min(cw/ft.w,chMax/ft.h),iw=ft.w*k,ih=ft.h*k;
+        if(col===0)novaPag(chMax+12);
+        const x=M+col*(cw+gap);
+        doc.setFillColor(...FUNDO);doc.rect(x,y,cw,chMax,"F");
+        doc.addImage(ft.data,"JPEG",x+(cw-iw)/2,y+(chMax-ih)/2,iw,ih);
+        doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.setTextColor(...TINTA);
+        doc.text("Foto "+pad2(i+1)+(ft.legenda?" – "+ft.legenda:""),x,y+chMax+4.5);
+        doc.setFont("helvetica","normal");doc.setTextColor(...CINZA);doc.text(ft.quando||"",x+cw,y+chMax+4.5,{align:"right"});
+        rowH=chMax+10;
+        if(col===1||i===fotos.length-1){y+=rowH;col=0}else col=1;
+      });
+    }
+    // rodapé
+    const n=doc.getNumberOfPages(),ger=carimbo();
+    for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(...LINHA);doc.setLineWidth(.2);doc.line(M,H-12,W-M,H-12);
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...CINZA);
+      doc.text("Grupo SERVNAC · Relatório de Plantão · gerado em "+ger,M,H-7.5);doc.text("Página "+i+" de "+n,W-M,H-7.5,{align:"right"})}
+    return doc;
+  }
+  const nomePdf=d=>"Relatorio-Plantao_"+d.dataInicio+"_"+d.supervisor.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")+".pdf";
 
   /* ---------- atualização ao vivo ---------- */
   let draftId=null;
@@ -435,7 +581,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
   function novoForm(manterSup){
     const m=mem().ultimo||{};
     CAMPOS.forEach(c=>$(c).value="");
-    $("faltasCobertas").checked=true;ocorr=[];draftId=uid();
+    $("faltasCobertas").checked=true;ocorr=[];draftId=uid();fotos=[];idb.clear();renderFotos();
     if(manterSup!==false){$("supervisor").value=m.supervisor||"";$("vtr").value=m.vtr||"";$("placa").value=m.placa||""}
     const h=hojeISO();$("dataInicio").value=h;$("dataFim").value=somaDia(h,1);$("horaInicio").value="18:00";
     document.querySelectorAll("[aria-invalid]").forEach(x=>x.removeAttribute("aria-invalid"));
@@ -448,6 +594,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
     $("faltasCobertas").checked=r.faltasCobertas!==false;
     ocorr=Array.isArray(r.ocorr)?r.ocorr:[];draftId=r.id||uid();
     renderOc();sugerirKm();atualizar();
+    idb.all().then(l=>{fotos=(l||[]).sort((a,b)=>a.ordem-b.ordem);renderFotos();atualizar()});
   }
 
   /* ---------- validação ---------- */
@@ -467,40 +614,64 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
   }
 
   /* ---------- envio ---------- */
-  let ultimoTexto="";
+  let pdfFile=null,pdfUrl=null;
+  function setPdf(doc,nome){
+    if(pdfUrl)URL.revokeObjectURL(pdfUrl);
+    const blob=doc.output("blob");pdfFile=new File([blob],nome,{type:"application/pdf"});pdfUrl=URL.createObjectURL(blob);
+  }
+  function baixar(){if(!pdfUrl)return;const a=document.createElement("a");a.href=pdfUrl;a.download=pdfFile.name;document.body.appendChild(a);a.click();a.remove()}
+  const blobB64=blob=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(",")[1]);fr.onerror=()=>rej(fr.error);fr.readAsDataURL(blob)});
+  const erroForm=t=>{const b=$("formMsg");b.hidden=false;b.textContent=t;b.scrollIntoView({behavior:"smooth",block:"center"})};
+
+  $("btnPrevPdf").addEventListener("click",async()=>{
+    const d=ler();if(!validar(d))return;
+    const btn=$("btnPrevPdf");btn.disabled=true;btn.textContent="Gerando…";
+    try{const doc=await gerarPDF(d);setPdf(doc,nomePdf(d));window.open(pdfUrl,"_blank")||baixar()}
+    catch(e){erroForm(e.message||String(e))}
+    btn.disabled=false;btn.textContent="Ver PDF antes de enviar";
+  });
+
   $("btnEnviar").addEventListener("click",async()=>{
     const d=ler();if(!validar(d))return;
-    const texto=gerarTexto(d);
-    const btn=$("btnEnviar");btn.disabled=true;btn.textContent="Enviando…";
+    if(!fotos.length&&!confirm("Nenhuma foto da viatura foi registrada. Gerar o PDF assim mesmo?"))return;
+    const btn=$("btnEnviar");btn.disabled=true;btn.textContent="Gerando PDF…";
     let gravou=false,erro="";
-    if(API_OK){
-      const payload={id:draftId,supervisor:d.supervisor,dataInicio:d.dataInicio,horaInicio:d.horaInicio,inicioRota:d.inicioRota,
-        dataFim:d.dataFim,horaFim:d.horaFim,vtr:d.vtr,placa:d.placa,kmInicial:d.kmI,kmFinal:d.kmF,kmPercorrido:d.km,
-        postosVisitados:parseInt(d.postosVisitados,10)||0,faltasRegistradas:parseInt(d.faltasRegistradas,10)||0,
-        faltasCobertas:parseInt(d.faltasRegistradas,10)>0?(d.faltasCobertas?"Sim":"Não"):"",
-        sincronizacao:{ok:"Realizada",inconsistencia:"Realizada com inconsistência no aplicativo",nao:"Não realizada"}[d.sincronizacao]||"",
-        sincronizacaoObs:d.sincronizacaoObs,ocorrenciasQtd:d.ocorrencias.length,
-        ocorrencias:d.ocorrencias.map(o=>o.posto+" – "+o.destino).join("; "),
-        faltasEfetivo:parseInt(d.faltasEfetivo,10)||0,reservasInformados:parseInt(d.reservasInformados,10)||0,
-        localReferencia:d.localReferencia||"Não informado",fatos:d.fatos,texto:texto};
-      try{
-        const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"addRelatorio",data:payload})});
-        const j=await r.json();if(!j.ok)throw new Error(j.error||"Erro ao gravar.");gravou=true;
-      }catch(e){erro=String(e.message||e)}
-    }
-    btn.disabled=false;btn.textContent="Enviar relatório";
-    if(API_OK&&!gravou){const b=$("formMsg");b.hidden=false;b.textContent="Não foi possível gravar na planilha ("+erro+"). Verifique a internet e tente de novo. O texto continua salvo aqui.";return}
-    lembrar(d);preencherListas();store.del(LS_DRAFT);
-    ultimoTexto=texto;
-    $("doneTxt").textContent=gravou?"O relatório foi gravado na planilha. Agora mande no grupo do WhatsApp.":"Página ainda não ligada à planilha: o relatório não foi gravado, mas você pode mandar no WhatsApp ou copiar o texto.";
-    $("btnWa").href=waLink(texto);
+    try{
+      const doc=await gerarPDF(d),nome=nomePdf(d);setPdf(doc,nome);
+      if(API_OK){
+        btn.textContent="Gravando na planilha…";
+        const payload={id:draftId,supervisor:d.supervisor,dataInicio:d.dataInicio,horaInicio:d.horaInicio,inicioRota:d.inicioRota,
+          dataFim:d.dataFim,horaFim:d.horaFim,vtr:d.vtr,placa:d.placa,kmInicial:d.kmI,kmFinal:d.kmF,kmPercorrido:d.km,
+          postosVisitados:parseInt(d.postosVisitados,10)||0,faltasRegistradas:parseInt(d.faltasRegistradas,10)||0,
+          faltasCobertas:parseInt(d.faltasRegistradas,10)>0?(d.faltasCobertas?"Sim":"Não"):"",
+          sincronizacao:{ok:"Realizada",inconsistencia:"Realizada com inconsistência no aplicativo",nao:"Não realizada"}[d.sincronizacao]||"",
+          sincronizacaoObs:d.sincronizacaoObs,ocorrenciasQtd:d.ocorrencias.length,
+          ocorrencias:d.ocorrencias.map(o=>o.posto+" – "+o.destino).join("; "),
+          faltasEfetivo:parseInt(d.faltasEfetivo,10)||0,reservasInformados:parseInt(d.reservasInformados,10)||0,
+          localReferencia:d.localReferencia||"Não informado",fatos:d.fatos,fotosQtd:fotos.length,texto:gerarTexto(d)};
+        try{
+          const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+            body:JSON.stringify({action:"addRelatorio",data:payload,pdf:await blobB64(pdfFile),pdfNome:nome})});
+          const j=await r.json();if(!j.ok)throw new Error(j.error||"Erro ao gravar.");gravou=true;
+        }catch(e){erro=String(e.message||e)}
+      }
+    }catch(e){btn.disabled=false;btn.textContent="Gerar PDF e enviar";erroForm(e.message||String(e));return}
+    btn.disabled=false;btn.textContent="Gerar PDF e enviar";
+    if(API_OK&&!gravou){erroForm("O PDF foi gerado, mas não foi possível gravar na planilha ("+erro+"). Verifique a internet e toque de novo em Gerar PDF e enviar. Nada foi perdido.");return}
+    lembrar(d);preencherListas();store.del(LS_DRAFT);fotos=[];idb.clear();
+    $("doneTxt").textContent=(gravou?"Relatório gravado na planilha. ":"")+"Toque em Enviar PDF no WhatsApp e escolha o grupo.";
     $("previewPanel").hidden=true;$("donePanel").hidden=false;
     $("donePanel").scrollIntoView({behavior:"smooth",block:"start"});
   });
-  $("btnCopiar").addEventListener("click",()=>copiar(gerarTexto(ler())));
-  $("btnCopiar2").addEventListener("click",()=>copiar(ultimoTexto));
+  $("btnShare").addEventListener("click",async()=>{
+    if(!pdfFile)return;
+    if(navigator.canShare&&navigator.canShare({files:[pdfFile]})){
+      try{await navigator.share({files:[pdfFile],title:"Relatório de Plantão"})}catch(e){if(e.name!=="AbortError")toast("Não foi possível compartilhar. Use Baixar PDF.")}
+    }else{baixar();toast("PDF baixado. Abra o WhatsApp, toque no clipe e anexe o arquivo.")}
+  });
+  $("btnBaixar").addEventListener("click",baixar);
   $("btnNovo").addEventListener("click",()=>{$("donePanel").hidden=true;$("previewPanel").hidden=false;novoForm();window.scrollTo({top:0,behavior:"smooth"})});
-  $("btnLimpar").addEventListener("click",()=>{if(confirm("Apagar tudo o que foi preenchido neste relatório?")){store.del(LS_DRAFT);novoForm()}});
+  $("btnLimpar").addEventListener("click",()=>{if(confirm("Apagar tudo o que foi preenchido neste relatório, inclusive as fotos?")){store.del(LS_DRAFT);novoForm()}});
 
   /* ---------- relatórios enviados ---------- */
   let lista=[];
@@ -544,8 +715,8 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
   $("tbody").addEventListener("click",e=>{
     const i=e.target.dataset.ver;if(i==null)return;const x=lista[+i];
     $("dlgTitle").textContent="Plantão de "+(dataBR(x.dataInicio)||x.dataInicio)+" · "+x.supervisor;
-    $("dlgText").textContent=x.texto||"";$("dlgWa").href=waLink(x.texto||"");
-    $("dlgCopy").onclick=()=>copiar(x.texto||"");
+    $("dlgText").textContent=x.texto||"";
+    $("dlgPdf").hidden=!x.pdfUrl;$("dlgSemPdf").hidden=!!x.pdfUrl;if(x.pdfUrl)$("dlgPdf").href=x.pdfUrl;
     $("dlg").showModal();
   });
   $("dlg").addEventListener("click",e=>{if(e.target.dataset.close!=null||e.target===$("dlg"))$("dlg").close()});
@@ -555,7 +726,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
       ["Supervisor","supervisor"],["VTR","vtr"],["Placa","placa"],["KM inicial","kmInicial"],["KM final","kmFinal"],["KM percorrido","kmPercorrido"],
       ["Postos visitados","postosVisitados"],["Faltas registradas","faltasRegistradas"],["Faltas cobertas","faltasCobertas"],["Sincronização","sincronizacao"],
       ["Detalhe sincronização","sincronizacaoObs"],["Ocorrências","ocorrenciasQtd"],["Destinos/postos","ocorrencias"],["Faltas no efetivo","faltasEfetivo"],
-      ["Reservas informados","reservasInformados"],["Local de referência","localReferencia"],["Fatos relevantes","fatos"],["Enviado em","criadoEm"]];
+      ["Reservas informados","reservasInformados"],["Local de referência","localReferencia"],["Fatos relevantes","fatos"],["Fotos","fotosQtd"],["PDF","pdfUrl"],["Enviado em","criadoEm"]];
     const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
     const csv="﻿"+cols.map(c=>q(c[0])).join(";")+"\n"+L.map(x=>cols.map(([,k])=>q(k.startsWith("data")?dataBR(x[k])||x[k]:x[k])).join(";")).join("\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
@@ -563,7 +734,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
   });
 
   /* ---------- início ---------- */
-  if(!API_OK){const b=$("banner");b.hidden=false;b.textContent="Página ainda não ligada à planilha: os relatórios podem ser copiados e enviados no WhatsApp, mas não ficam gravados. Para gravar, cole a URL do Apps Script em API_URL, no início do index.html."}
+  if(!API_OK){const b=$("banner");b.hidden=false;b.textContent="Página ainda não ligada à planilha: o PDF é gerado e pode ser enviado no WhatsApp, mas o relatório não fica gravado. Para gravar, cole a URL do Apps Script em API_URL, no início do index.html."}
   preencherListas();restaurar();
 })();
 </script>
