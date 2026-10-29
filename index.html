@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Relatório de Plantão SERVNAC</title>
+<link rel="icon" href="logo-servnac.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#f5f7f5; --surface:#ffffff; --fg:#1d2420; --muted:#5d6a63; --line:#d8e0db;
+  --accent:#1f7a45; --accent-ink:#ffffff; --accent-soft:#e3f1e8; --band:#14532d; --band-fg:#eaf5ee;
+  --danger:#b3261e; --danger-soft:#fbe9e7; --warn:#8a5a00; --warn-soft:#fdf1d8;
+  --f-display:"Archivo","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1a201d; --fg:#e6ece8; --muted:#9aa8a0; --line:#2d3631;
+  --accent:#4cb87a; --accent-ink:#0d1a12; --accent-soft:#1d3327; --band:#0e2a19; --band-fg:#dcefe3;
+  --danger:#f2867c; --danger-soft:#3a1e1c; --warn:#e8bb5c; --warn-soft:#3a2f17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1a201d; --fg:#e6ece8; --muted:#9aa8a0; --line:#2d3631;
+  --accent:#4cb87a; --accent-ink:#0d1a12; --accent-soft:#1d3327; --band:#0e2a19; --band-fg:#dcefe3;
+  --danger:#f2867c; --danger-soft:#3a1e1c; --warn:#e8bb5c; --warn-soft:#3a2f17; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.band{background:var(--band);color:var(--band-fg)}
+header.band .wrap{padding-block:22px 0;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.8}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,4vw,30px);margin:2px 0 0;letter-spacing:-.01em}
+.who{font-size:13px;opacity:.85}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs button{font:600 14px var(--f-display);color:var(--band-fg);background:transparent;border:0;padding:11px 16px 12px;border-radius:8px 8px 0 0;cursor:pointer;white-space:nowrap;opacity:.8}
+nav.tabs button[aria-selected="true"]{background:var(--bg);color:var(--fg);opacity:1}
+nav.tabs button:focus-visible{outline:2px solid var(--band-fg);outline-offset:-3px}
+main .wrap{padding-block:24px 48px;display:flex;flex-direction:column;gap:18px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,380px);gap:18px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px}
+.panel h2{font-family:var(--f-display);font-size:17px;font-weight:700;margin:0 0 4px;display:flex;gap:8px;align-items:center}
+.panel h2 .n{font:500 12px var(--f-mono);color:var(--accent);background:var(--accent-soft);border-radius:5px;padding:2px 7px}
+.panel p.lead{margin:0 0 16px;color:var(--muted);font-size:14px;max-width:65ch}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid .full{grid-column:1/-1}
+@media (max-width:620px){.grid,.grid.three{grid-template-columns:minmax(0,1fr)}.panel{padding:18px 16px}}
+label.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+label.f>span{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+label.f>span em{font-style:normal;color:var(--danger)}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:10px 11px;width:100%;min-width:0}
+textarea{min-height:110px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+input[aria-invalid="true"],select[aria-invalid="true"]{border-color:var(--danger);background:var(--danger-soft)}
+input[readonly]{background:var(--accent-soft);border-color:transparent;font-weight:600}
+.hint{font-size:12.5px;color:var(--muted)}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:14px;cursor:pointer;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--bg)}
+.check input{width:auto;margin-top:3px;accent-color:var(--accent)}
+.ocorr{display:flex;flex-direction:column;gap:10px}
+.oc-row{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.oc-row .num{font:500 13px var(--f-mono);color:var(--accent);padding-bottom:11px}
+.oc-row input{background:var(--surface)}
+@media (max-width:620px){.oc-row{grid-template-columns:minmax(0,1fr) auto}.oc-row .num{display:none}.oc-row label:first-of-type{grid-column:1/-1}}
+.empty-oc{font-size:14px;color:var(--muted);padding:12px;border:1px dashed var(--line);border-radius:8px;text-align:center}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font:600 14px var(--f-display);border-radius:8px;padding:11px 18px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:7px;justify-content:center;text-decoration:none}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.small{padding:6px 11px;font-size:13px}
+.btn.danger{background:transparent;color:var(--danger);border-color:var(--line)}
+.btn.wa{background:#1f7a45;color:#fff}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn svg{width:17px;height:17px;flex:none}
+.msg{font-size:14px;padding:10px 12px;border-radius:7px}
+.msg.ok{background:var(--accent-soft);color:var(--fg)}
+.msg.err{background:var(--danger-soft);color:var(--danger)}
+.msg.warn{background:var(--warn-soft);color:var(--warn)}
+.preview{position:sticky;top:14px}
+@media (max-width:900px){.preview{position:static}}
+.preview pre{margin:0 0 14px;white-space:pre-wrap;word-break:break-word;font:13px/1.55 var(--f-body);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;max-height:62vh;overflow:auto}
+@media (max-width:900px){.preview pre{max-height:none}}
+.preview .actions{flex-direction:column;align-items:stretch}
+.kmbox{display:flex;align-items:baseline;gap:6px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:14px}
+.toolbar label.f{flex:1 1 160px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg);display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.kpi .v{font:800 26px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.kpi .l{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.85;font-weight:600}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:820px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg);font-weight:600;white-space:nowrap}
+th.num,td.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+td.mono{font-family:var(--f-mono);white-space:nowrap}
+.chip{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--accent-soft);white-space:nowrap;display:inline-block}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.red{background:var(--danger-soft);color:var(--danger)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.status{font-size:13px;color:var(--muted)}
+dialog{border:1px solid var(--line);border-radius:12px;padding:0;background:var(--surface);color:var(--fg);width:min(620px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog .dh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+dialog .dh h3{margin:0;font:700 16px var(--f-display)}
+dialog .db{padding:16px 18px;overflow:auto;max-height:calc(100vh - 190px)}
+dialog .db pre{margin:0;white-space:pre-wrap;word-break:break-word;font:13.5px/1.55 var(--f-body)}
+dialog .df{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--line)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100vw - 32px)}
+.done{display:flex;flex-direction:column;gap:12px}
+.done h2{color:var(--accent)}
+footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
+</style>
+<script>
+  /* CONFIGURAÇÃO: cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec) */
+  window.API_URL="COLE_AQUI_A_URL_DO_APPS_SCRIPT";
+</script>
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Grupo SERVNAC · Verde Segurança</div>
+      <h1>Relatório de Plantão</h1>
+      <div class="who">Preenchimento do relatório do supervisor de plantão</div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="novo">Novo relatório</button>
+      <button role="tab" aria-selected="false" data-tab="lista">Relatórios enviados</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+  <div id="banner" class="msg warn" hidden></div>
+
+  <!-- ============ NOVO RELATÓRIO ============ -->
+  <div id="view-novo">
+  <div class="layout">
+  <form id="form" class="col" novalidate autocomplete="off">
+
+    <section class="panel">
+      <h2><span class="n">1</span>Plantão</h2>
+      <p class="lead">Campos com <em style="color:var(--danger);font-style:normal">*</em> são obrigatórios. O que você digitar fica salvo neste aparelho até o envio.</p>
+      <div class="grid">
+        <label class="f full"><span>Supervisor <em>*</em></span><input id="supervisor" list="lista-sup" required placeholder="Nome do supervisor"><datalist id="lista-sup"></datalist></label>
+        <label class="f"><span>Data de início do plantão <em>*</em></span><input type="date" id="dataInicio" required></label>
+        <label class="f"><span>Hora de início do plantão <em>*</em></span><input type="time" id="horaInicio" required></label>
+        <label class="f"><span>Início da rota <em>*</em></span><input type="time" id="inicioRota" required></label>
+        <span></span>
+        <label class="f"><span>Data do término <em>*</em></span><input type="date" id="dataFim" required></label>
+        <label class="f"><span>Término da rota <em>*</em></span><input type="time" id="horaFim" required></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">2</span>Viatura</h2>
+      <div class="grid">
+        <label class="f"><span>VTR <em>*</em></span><input id="vtr" list="lista-vtr" required placeholder="Ex.: EKWID" style="text-transform:uppercase"><datalist id="lista-vtr"></datalist></label>
+        <label class="f"><span>Placa <em>*</em></span><input id="placa" list="lista-placa" required placeholder="Ex.: SBP3D06" maxlength="8" style="text-transform:uppercase"><datalist id="lista-placa"></datalist></label>
+        <label class="f"><span>KM inicial <em>*</em></span><input id="kmInicial" inputmode="numeric" required placeholder="Ex.: 178.087"><small class="hint" id="kmHint" hidden></small></label>
+        <label class="f"><span>KM final <em>*</em></span><input id="kmFinal" inputmode="numeric" required placeholder="Ex.: 178.279"></label>
+        <label class="f full"><span>KM percorrido (calculado)</span><input id="kmPercorrido" readonly tabindex="-1" value="—"></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">3</span>Rondas e visitas</h2>
+      <div class="grid">
+        <label class="f"><span>Postos visitados <em>*</em></span><input id="postosVisitados" type="number" min="0" inputmode="numeric" required></label>
+        <label class="f"><span>Faltas registradas <em>*</em></span><input id="faltasRegistradas" type="number" min="0" inputmode="numeric" required></label>
+        <label class="check full" id="boxCobertas" hidden><input type="checkbox" id="faltasCobertas" checked><span>A(s) falta(s) foi(ram) coberta(s) em tempo hábil</span></label>
+        <label class="f"><span>Sincronização da rota <em>*</em></span>
+          <select id="sincronizacao" required>
+            <option value="">Selecione</option>
+            <option value="ok">Realizada</option>
+            <option value="inconsistencia">Realizada, mas a rota não atualizou no aplicativo</option>
+            <option value="nao">Não realizada</option>
+          </select></label>
+        <label class="f"><span>Detalhe da sincronização</span><input id="sincronizacaoObs" placeholder="Opcional"></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">4</span>Ocorrência / condução</h2>
+      <p class="lead">Adicione uma linha para cada ocorrência ou condução. Se não houve, deixe vazio.</p>
+      <div class="ocorr" id="ocorrList"></div>
+      <div class="actions" style="margin-top:12px"><button type="button" class="btn ghost small" id="addOc">+ Adicionar ocorrência</button></div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">5</span>Efetivo / reserva</h2>
+      <div class="grid">
+        <label class="f"><span>Faltas no efetivo <em>*</em></span><input id="faltasEfetivo" type="number" min="0" inputmode="numeric" required></label>
+        <label class="f"><span>Reservas informados <em>*</em></span><input id="reservasInformados" type="number" min="0" inputmode="numeric" required></label>
+        <label class="f full"><span>Local de referência</span><input id="localReferencia" placeholder="Deixe vazio se não foi informado"></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="n">6</span>Considerações finais</h2>
+      <p class="lead">O resumo do plantão (postos, km, faltas, sincronização e encerramento) é escrito automaticamente. Aqui você descreve só os fatos relevantes: atestados, coberturas, problemas no posto, na viatura etc.</p>
+      <label class="f"><span>Fatos relevantes do plantão</span><textarea id="fatos" placeholder="Ex.: O vigilante Fulano de Tal apresentou atestado médico, o que exigiu cobertura do posto X."></textarea></label>
+    </section>
+  </form>
+
+  <aside class="col preview">
+    <section class="panel" id="previewPanel">
+      <h2>Prévia do relatório</h2>
+      <p class="lead" style="margin-bottom:12px">É este texto que vai para a planilha e para o WhatsApp.</p>
+      <pre id="preview"></pre>
+      <div id="formMsg" class="msg err" hidden style="margin-bottom:12px"></div>
+      <div class="actions">
+        <button type="button" class="btn primary block" id="btnEnviar">Enviar relatório</button>
+        <button type="button" class="btn ghost block" id="btnCopiar">Copiar texto</button>
+        <button type="button" class="btn danger block" id="btnLimpar">Limpar formulário</button>
+      </div>
+    </section>
+
+    <section class="panel done" id="donePanel" hidden>
+      <h2>Relatório enviado</h2>
+      <p class="lead" style="margin:0" id="doneTxt">O relatório foi gravado na planilha. Agora mande no grupo do WhatsApp.</p>
+      <a class="btn wa block" id="btnWa" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4a.5.5 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 2.9 2.9 0 0 0-.9 2.2 5 5 0 0 0 1 2.7 11.5 11.5 0 0 0 4.4 3.9c1.6.7 2.3.7 3.1.6a2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .2-1.2c-.1-.1-.3-.2-.6-.3Z"/></svg>
+        Enviar no WhatsApp</a>
+      <button type="button" class="btn ghost block" id="btnCopiar2">Copiar texto</button>
+      <button type="button" class="btn ghost block" id="btnNovo">Começar novo relatório</button>
+    </section>
+  </aside>
+  </div>
+  </div>
+
+  <!-- ============ RELATÓRIOS ENVIADOS ============ -->
+  <section class="panel" id="view-lista" hidden>
+    <h2>Relatórios enviados</h2>
+    <p class="lead">Todos os relatórios gravados na planilha. Toque em <b>Ver</b> para abrir o texto completo.</p>
+    <div class="toolbar">
+      <label class="f"><span>Supervisor</span><select id="fSup"><option value="">Todos</option></select></label>
+      <label class="f"><span>De</span><input type="date" id="fDe"></label>
+      <label class="f"><span>Até</span><input type="date" id="fAte"></label>
+      <button type="button" class="btn ghost" id="btnAtualizar">Atualizar</button>
+      <button type="button" class="btn ghost" id="btnCsv">Baixar planilha (CSV)</button>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>Plantão</th><th>Supervisor</th><th>VTR / Placa</th><th class="num">KM</th><th class="num">Postos</th><th class="num">Faltas</th><th class="num">Ocorr.</th><th>Sincronização</th><th></th></tr></thead>
+      <tbody id="tbody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
+    </table></div>
+    <p class="status" id="listaStatus"></p>
+  </section>
+</div>
+</main>
+<footer>Grupo SERVNAC · Relatório de Plantão</footer>
+
+<dialog id="dlg">
+  <div class="dh"><h3 id="dlgTitle">Relatório</h3><button type="button" class="btn ghost small" data-close>Fechar</button></div>
+  <div class="db"><pre id="dlgText"></pre></div>
+  <div class="df"><button type="button" class="btn ghost" id="dlgCopy">Copiar texto</button><a class="btn wa" id="dlgWa" target="_blank" rel="noopener">Enviar no WhatsApp</a></div>
+</dialog>
+
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const API_URL=window.API_URL||"";
+  const API_OK=/^https:\/\/script\.google\.com\//.test(API_URL);
+  const LS_DRAFT="plantao.rascunho.v1", LS_MEM="plantao.memoria.v1";
+  const store={
+    get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+    set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+    del(k){try{localStorage.removeItem(k)}catch(e){}}
+  };
+  const CAMPOS=["supervisor","dataInicio","horaInicio","inicioRota","dataFim","horaFim","vtr","placa","kmInicial","kmFinal",
+    "postosVisitados","faltasRegistradas","sincronizacao","sincronizacaoObs","faltasEfetivo","reservasInformados","localReferencia","fatos"];
+  const OBRIG=["supervisor","dataInicio","horaInicio","inicioRota","dataFim","horaFim","vtr","placa","kmInicial","kmFinal",
+    "postosVisitados","faltasRegistradas","sincronizacao","faltasEfetivo","reservasInformados"];
+
+  /* ---------- utilidades ---------- */
+  const pad2=n=>String(Math.max(0,parseInt(n,10)||0)).padStart(2,"0");
+  const dig=s=>String(s||"").replace(/\D/g,"");
+  const kmNum=s=>{const d=dig(s);return d?parseInt(d,10):null};
+  const kmFmt=n=>n==null?"":n.toLocaleString("pt-BR");
+  const dataBR=iso=>{const m=String(iso||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+"/"+m[2]+"/"+m[1]:""};
+  const hora=h=>{const m=String(h||"").match(/^(\d{2}):(\d{2})/);return m?m[1]+"h"+m[2]:""};
+  const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const hojeISO=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+  const somaDia=(iso,n)=>{const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+  const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
+  const plural=(n,s,p)=>n===1?s:p;
+  function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2600)}
+  async function copiar(t){
+    try{await navigator.clipboard.writeText(t);toast("Texto copiado.")}
+    catch(e){const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("Texto copiado.")}catch(_){toast("Não foi possível copiar.")}ta.remove()}
+  }
+  const waLink=t=>"https://wa.me/?text="+encodeURIComponent(t);
+
+  /* ---------- abas ---------- */
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
+    document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b?"true":"false"));
+    $("view-novo").hidden=b.dataset.tab!=="novo";
+    $("view-lista").hidden=b.dataset.tab!=="lista";
+    if(b.dataset.tab==="lista")carregarLista();
+  }));
+
+  /* ---------- ocorrências ---------- */
+  let ocorr=[];
+  function renderOc(){
+    const box=$("ocorrList");
+    if(!ocorr.length){box.innerHTML='<div class="empty-oc">Nenhuma ocorrência ou condução registrada.</div>';return}
+    box.innerHTML=ocorr.map((o,i)=>`<div class="oc-row" data-i="${i}">
+      <span class="num">${pad2(i+1)}</span>
+      <label class="f"><span>Destino</span><input data-k="destino" value="${esc(o.destino)}" placeholder="Ex.: Município de Pacajus"></label>
+      <label class="f"><span>Posto</span><input data-k="posto" value="${esc(o.posto)}" placeholder="Ex.: EEM Maria Falcão"></label>
+      <button type="button" class="btn danger small" data-rm="${i}" aria-label="Remover ocorrência ${i+1}">Remover</button></div>`).join("");
+  }
+  $("ocorrList").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;const i=+e.target.closest(".oc-row").dataset.i;ocorr[i][k]=e.target.value;atualizar()});
+  $("ocorrList").addEventListener("click",e=>{const i=e.target.dataset.rm;if(i==null)return;ocorr.splice(+i,1);renderOc();atualizar()});
+  $("addOc").addEventListener("click",()=>{ocorr.push({destino:"",posto:""});renderOc();atualizar();const ins=$("ocorrList").querySelectorAll('input[data-k="destino"]');ins[ins.length-1].focus()});
+
+  /* ---------- leitura do formulário ---------- */
+  function ler(){
+    const d={};CAMPOS.forEach(c=>d[c]=$(c).value.trim());
+    d.vtr=d.vtr.toUpperCase();d.placa=d.placa.toUpperCase().replace(/[^A-Z0-9]/g,"");
+    d.faltasCobertas=$("faltasCobertas").checked;
+    d.ocorrencias=ocorr.filter(o=>o.destino.trim()||o.posto.trim()).map(o=>({destino:o.destino.trim(),posto:o.posto.trim()}));
+    const ki=kmNum(d.kmInicial),kf=kmNum(d.kmFinal);
+    d.kmI=ki;d.kmF=kf;d.km=(ki!=null&&kf!=null&&kf>=ki)?kf-ki:null;
+    return d;
+  }
+
+  /* ---------- texto do relatório (mesmo modelo do relatório manual) ---------- */
+  function textoSync(d){
+    const obs=d.sincronizacaoObs.replace(/\.$/,"");
+    if(d.sincronizacao==="ok")return "Realizada"+(obs?". "+obs+".":".");
+    if(d.sincronizacao==="inconsistencia")return "Realizada, porém a rota não foi atualizada no aplicativo, mesmo após a execução do procedimento de sincronização."+(obs?" "+obs+".":"");
+    if(d.sincronizacao==="nao")return "Não realizada"+(obs?" – "+obs+".":".");
+    return "—";
+  }
+  function gerarTexto(d){
+    const L=[],nOc=d.ocorrencias.length,f=v=>v===""?"—":pad2(v);
+    const per=d.dataInicio?(dataBR(d.dataInicio)+(d.dataFim&&d.dataFim!==d.dataInicio?" a "+dataBR(d.dataFim):"")):"—";
+    L.push("🚨 RELATÓRIO DE PLANTÃO 🚨","");
+    L.push("PERÍODO: "+per,"SUPERVISOR: "+(d.supervisor||"—"),"");
+    L.push("🚔 DADOS DA VIATURA","");
+    L.push("* VTR: "+(d.vtr||"—"),"* PLACA: "+(d.placa||"—"),"* KM INICIAL: "+(d.kmI!=null?kmFmt(d.kmI):"—"),
+      "* KM FINAL: "+(d.kmF!=null?kmFmt(d.kmF):"—"),"* KM PERCORRIDO: "+(d.km!=null?kmFmt(d.km)+" km":"—"),"");
+    L.push("⏰ HORÁRIOS DO PLANTÃO","");
+    L.push("* Início do plantão: "+(hora(d.horaInicio)||"—")+(d.dataInicio?" – "+dataBR(d.dataInicio):""),
+      "* Início da rota: "+(hora(d.inicioRota)||"—"),
+      "* Término da rota: "+(hora(d.horaFim)||"—")+(d.dataFim?" – "+dataBR(d.dataFim):""),"");
+    L.push("📍 RONDAS E VISITAS","");
+    L.push("* Total de postos visitados: "+f(d.postosVisitados),"* Faltas registradas: "+f(d.faltasRegistradas),
+      "* Sincronização da rota: "+textoSync(d),"");
+    L.push("🚨 OCORRÊNCIA / CONDUÇÃO","");
+    L.push("* Quantidade: "+pad2(nOc));
+    if(nOc===1){L.push("* Destino: "+(d.ocorrencias[0].destino||"—"),"* Posto: "+(d.ocorrencias[0].posto||"—"))}
+    else d.ocorrencias.forEach((o,i)=>L.push("* Destino "+(i+1)+": "+(o.destino||"—"),"* Posto "+(i+1)+": "+(o.posto||"—")));
+    L.push("");
+    L.push("👮 EFETIVO / RESERVA","");
+    L.push("* Faltas no efetivo: "+f(d.faltasEfetivo),"* Vigilantes reservas informados: "+f(d.reservasInformados),
+      "* Local de referência: "+(d.localReferencia||"Não informado"),"");
+    L.push("✅ CONSIDERAÇÕES FINAIS","");
+    // resumo automático
+    const pv=parseInt(d.postosVisitados,10)||0,fr=parseInt(d.faltasRegistradas,10)||0;
+    let abre="Plantão realizado com "+pad2(pv)+" "+plural(pv,"posto visitado","postos visitados")+
+      (d.km!=null?", totalizando "+kmFmt(d.km)+" km percorridos":"");
+    if(fr===0)abre+=", sem registro de faltas.";
+    else abre+=", com registro de "+pad2(fr)+" "+plural(fr,"falta","faltas")+(d.faltasCobertas?", "+plural(fr,"devidamente coberta","devidamente cobertas")+" em tempo hábil.":".");
+    L.push(abre,"");
+    if(nOc>0){
+      L.push("Houve "+pad2(nOc)+" "+plural(nOc,"ocorrência/condução registrada","ocorrências/conduções registradas")+": "+
+        d.ocorrencias.map(o=>[o.posto,o.destino].filter(Boolean).join(" – ")).join("; ")+".","");
+    }
+    d.fatos.split(/\n\s*\n|\n/).map(s=>s.trim()).filter(Boolean).forEach(p=>L.push(p,""));
+    if(d.sincronizacao==="inconsistencia")L.push("Ressalta-se que o procedimento de sincronização da rota foi devidamente realizado. Entretanto, as informações não foram atualizadas no aplicativo, permanecendo a inconsistência no sistema.","");
+    if(d.sincronizacao==="nao")L.push("Registra-se que a sincronização da rota não foi realizada"+(d.sincronizacaoObs?": "+d.sincronizacaoObs.replace(/\.$/,"")+".":"."),"");
+    if(d.horaFim&&d.dataFim)L.push("O plantão foi encerrado às "+hora(d.horaFim)+" do dia "+dataBR(d.dataFim)+", com as atividades e ocorrências devidamente registradas.","");
+    L.push("SUPERVISOR RESPONSÁVEL:",(d.supervisor||"—").toUpperCase());
+    return L.join("\n");
+  }
+
+  /* ---------- atualização ao vivo ---------- */
+  let draftId=null;
+  function atualizar(){
+    const d=ler();
+    $("kmPercorrido").value=d.km!=null?kmFmt(d.km)+" km":(d.kmI!=null&&d.kmF!=null?"KM final menor que o inicial":"—");
+    $("boxCobertas").hidden=!(parseInt(d.faltasRegistradas,10)>0);
+    $("preview").textContent=gerarTexto(d);
+    const rasc={id:draftId,ocorr:ocorr,faltasCobertas:$("faltasCobertas").checked};CAMPOS.forEach(c=>rasc[c]=$(c).value);
+    store.set(LS_DRAFT,rasc);
+  }
+  $("form").addEventListener("input",e=>{if(e.target.getAttribute("aria-invalid"))e.target.removeAttribute("aria-invalid");atualizar()});
+  $("form").addEventListener("change",atualizar);
+  ["kmInicial","kmFinal"].forEach(id=>$(id).addEventListener("blur",()=>{const n=kmNum($(id).value);if(n!=null)$(id).value=kmFmt(n);atualizar()}));
+  $("dataInicio").addEventListener("change",()=>{if($("dataInicio").value&&!$("dataFim").value){$("dataFim").value=somaDia($("dataInicio").value,1);atualizar()}});
+  $("placa").addEventListener("change",sugerirKm);
+
+  /* ---------- memória do aparelho (supervisor, VTR, placa, último KM) ---------- */
+  function mem(){return store.get(LS_MEM,{sup:[],vtr:[],placa:[],km:{},vtrDaPlaca:{}})}
+  function preencherListas(extraSup){
+    const m=mem();
+    const sups=[...new Set([...(m.sup||[]),...(extraSup||[])])].sort((a,b)=>a.localeCompare(b,"pt"));
+    $("lista-sup").innerHTML=sups.map(s=>`<option value="${esc(s)}">`).join("");
+    $("lista-vtr").innerHTML=(m.vtr||[]).map(s=>`<option value="${esc(s)}">`).join("");
+    $("lista-placa").innerHTML=(m.placa||[]).map(s=>`<option value="${esc(s)}">`).join("");
+  }
+  function lembrar(d){
+    const m=mem(),add=(arr,v)=>{arr=arr||[];if(v&&arr.indexOf(v)<0)arr.push(v);return arr.slice(-30)};
+    m.sup=add(m.sup,d.supervisor);m.vtr=add(m.vtr,d.vtr);m.placa=add(m.placa,d.placa);
+    m.km=m.km||{};if(d.placa&&d.kmF!=null)m.km[d.placa]=d.kmF;
+    m.vtrDaPlaca=m.vtrDaPlaca||{};if(d.placa)m.vtrDaPlaca[d.placa]=d.vtr;
+    m.ultimo={supervisor:d.supervisor,vtr:d.vtr,placa:d.placa};
+    store.set(LS_MEM,m);
+  }
+  function sugerirKm(){
+    const m=mem(),p=$("placa").value.toUpperCase().replace(/[^A-Z0-9]/g,""),h=$("kmHint");
+    if(p&&m.vtrDaPlaca&&m.vtrDaPlaca[p]&&!$("vtr").value)$("vtr").value=m.vtrDaPlaca[p];
+    if(p&&m.km&&m.km[p]!=null){
+      h.hidden=false;h.innerHTML="Último KM final desta placa: <b>"+kmFmt(m.km[p])+"</b>";
+      if(!$("kmInicial").value)$("kmInicial").value=kmFmt(m.km[p]);
+    }else h.hidden=true;
+    atualizar();
+  }
+
+  /* ---------- rascunho ---------- */
+  function novoForm(manterSup){
+    const m=mem().ultimo||{};
+    CAMPOS.forEach(c=>$(c).value="");
+    $("faltasCobertas").checked=true;ocorr=[];draftId=uid();
+    if(manterSup!==false){$("supervisor").value=m.supervisor||"";$("vtr").value=m.vtr||"";$("placa").value=m.placa||""}
+    const h=hojeISO();$("dataInicio").value=h;$("dataFim").value=somaDia(h,1);$("horaInicio").value="18:00";
+    document.querySelectorAll("[aria-invalid]").forEach(x=>x.removeAttribute("aria-invalid"));
+    $("formMsg").hidden=true;renderOc();sugerirKm();atualizar();
+  }
+  function restaurar(){
+    const r=store.get(LS_DRAFT,null);
+    if(!r){novoForm();return}
+    CAMPOS.forEach(c=>{if(r[c]!=null)$(c).value=r[c]});
+    $("faltasCobertas").checked=r.faltasCobertas!==false;
+    ocorr=Array.isArray(r.ocorr)?r.ocorr:[];draftId=r.id||uid();
+    renderOc();sugerirKm();atualizar();
+  }
+
+  /* ---------- validação ---------- */
+  function validar(d){
+    const erros=[];
+    document.querySelectorAll("[aria-invalid]").forEach(x=>x.removeAttribute("aria-invalid"));
+    OBRIG.forEach(c=>{if(!$(c).value.trim()){$(c).setAttribute("aria-invalid","true");erros.push("x")}});
+    let msg=erros.length?"Preencha os campos obrigatórios destacados.":"";
+    if(!msg&&d.kmF<d.kmI){$("kmFinal").setAttribute("aria-invalid","true");msg="O KM final está menor que o KM inicial."}
+    if(!msg&&d.km>2000){$("kmFinal").setAttribute("aria-invalid","true");msg="KM percorrido acima de 2.000 km. Confira o KM inicial e o final."}
+    if(!msg&&(d.dataFim+d.horaFim)<=(d.dataInicio+d.horaInicio)){$("dataFim").setAttribute("aria-invalid","true");$("horaFim").setAttribute("aria-invalid","true");msg="O término precisa ser depois do início do plantão."}
+    ["postosVisitados","faltasRegistradas","faltasEfetivo","reservasInformados"].forEach(c=>{if(!msg&&parseInt($(c).value,10)<0){$(c).setAttribute("aria-invalid","true");msg="Os números não podem ser negativos."}});
+    if(!msg&&ocorr.some(o=>(o.destino.trim()||o.posto.trim())&&!(o.destino.trim()&&o.posto.trim())))msg="Em cada ocorrência, informe o destino e o posto.";
+    const box=$("formMsg");box.hidden=!msg;box.textContent=msg;
+    if(msg){const el=document.querySelector("[aria-invalid]");if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.focus({preventScroll:true})}else box.scrollIntoView({behavior:"smooth",block:"center"})}
+    return !msg;
+  }
+
+  /* ---------- envio ---------- */
+  let ultimoTexto="";
+  $("btnEnviar").addEventListener("click",async()=>{
+    const d=ler();if(!validar(d))return;
+    const texto=gerarTexto(d);
+    const btn=$("btnEnviar");btn.disabled=true;btn.textContent="Enviando…";
+    let gravou=false,erro="";
+    if(API_OK){
+      const payload={id:draftId,supervisor:d.supervisor,dataInicio:d.dataInicio,horaInicio:d.horaInicio,inicioRota:d.inicioRota,
+        dataFim:d.dataFim,horaFim:d.horaFim,vtr:d.vtr,placa:d.placa,kmInicial:d.kmI,kmFinal:d.kmF,kmPercorrido:d.km,
+        postosVisitados:parseInt(d.postosVisitados,10)||0,faltasRegistradas:parseInt(d.faltasRegistradas,10)||0,
+        faltasCobertas:parseInt(d.faltasRegistradas,10)>0?(d.faltasCobertas?"Sim":"Não"):"",
+        sincronizacao:{ok:"Realizada",inconsistencia:"Realizada com inconsistência no aplicativo",nao:"Não realizada"}[d.sincronizacao]||"",
+        sincronizacaoObs:d.sincronizacaoObs,ocorrenciasQtd:d.ocorrencias.length,
+        ocorrencias:d.ocorrencias.map(o=>o.posto+" – "+o.destino).join("; "),
+        faltasEfetivo:parseInt(d.faltasEfetivo,10)||0,reservasInformados:parseInt(d.reservasInformados,10)||0,
+        localReferencia:d.localReferencia||"Não informado",fatos:d.fatos,texto:texto};
+      try{
+        const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"addRelatorio",data:payload})});
+        const j=await r.json();if(!j.ok)throw new Error(j.error||"Erro ao gravar.");gravou=true;
+      }catch(e){erro=String(e.message||e)}
+    }
+    btn.disabled=false;btn.textContent="Enviar relatório";
+    if(API_OK&&!gravou){const b=$("formMsg");b.hidden=false;b.textContent="Não foi possível gravar na planilha ("+erro+"). Verifique a internet e tente de novo. O texto continua salvo aqui.";return}
+    lembrar(d);preencherListas();store.del(LS_DRAFT);
+    ultimoTexto=texto;
+    $("doneTxt").textContent=gravou?"O relatório foi gravado na planilha. Agora mande no grupo do WhatsApp.":"Página ainda não ligada à planilha: o relatório não foi gravado, mas você pode mandar no WhatsApp ou copiar o texto.";
+    $("btnWa").href=waLink(texto);
+    $("previewPanel").hidden=true;$("donePanel").hidden=false;
+    $("donePanel").scrollIntoView({behavior:"smooth",block:"start"});
+  });
+  $("btnCopiar").addEventListener("click",()=>copiar(gerarTexto(ler())));
+  $("btnCopiar2").addEventListener("click",()=>copiar(ultimoTexto));
+  $("btnNovo").addEventListener("click",()=>{$("donePanel").hidden=true;$("previewPanel").hidden=false;novoForm();window.scrollTo({top:0,behavior:"smooth"})});
+  $("btnLimpar").addEventListener("click",()=>{if(confirm("Apagar tudo o que foi preenchido neste relatório?")){store.del(LS_DRAFT);novoForm()}});
+
+  /* ---------- relatórios enviados ---------- */
+  let lista=[];
+  async function carregarLista(){
+    if(!API_OK){$("tbody").innerHTML='<tr><td colspan="9" class="empty">A página ainda não está ligada à planilha.</td></tr>';return}
+    $("listaStatus").textContent="Atualizando…";
+    try{
+      const r=await fetch(API_URL+"?t="+Date.now());const j=await r.json();if(!j.ok)throw new Error(j.error);
+      lista=(j.relatorios||[]).slice().sort((a,b)=>(String(b.dataInicio)+b.horaInicio).localeCompare(String(a.dataInicio)+a.horaInicio));
+      const sups=[...new Set(lista.map(x=>x.supervisor).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));
+      const atual=$("fSup").value;
+      $("fSup").innerHTML='<option value="">Todos</option>'+sups.map(s=>`<option ${s===atual?"selected":""}>${esc(s)}</option>`).join("");
+      preencherListas(sups);
+      $("listaStatus").textContent="Atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+".";
+      renderLista();
+    }catch(e){$("listaStatus").textContent="";$("tbody").innerHTML='<tr><td colspan="9" class="empty">Não foi possível carregar: '+esc(e.message||e)+"</td></tr>"}
+  }
+  function filtrados(){
+    const s=$("fSup").value,de=$("fDe").value,ate=$("fAte").value;
+    return lista.filter(x=>(!s||x.supervisor===s)&&(!de||x.dataInicio>=de)&&(!ate||x.dataInicio<=ate));
+  }
+  function renderLista(){
+    const L=filtrados(),n=v=>Number(v)||0,soma=k=>L.reduce((a,x)=>a+n(x[k]),0);
+    $("kpis").innerHTML=[["main",L.length,"Relatórios"],["",kmFmt(soma("kmPercorrido")),"KM percorridos"],["",soma("postosVisitados"),"Postos visitados"],
+      ["",soma("faltasRegistradas"),"Faltas registradas"],["",soma("ocorrenciasQtd"),"Ocorrências"],
+      ["",L.filter(x=>x.sincronizacao&&x.sincronizacao!=="Realizada").length,"Problemas de sincronização"]]
+      .map(([c,v,l])=>`<div class="kpi ${c}"><span class="v">${v}</span><span class="l">${l}</span></div>`).join("");
+    if(!L.length){$("tbody").innerHTML='<tr><td colspan="9" class="empty">Nenhum relatório no filtro escolhido.</td></tr>';return}
+    $("tbody").innerHTML=L.map(x=>{
+      const i=lista.indexOf(x);
+      const sc=x.sincronizacao==="Realizada"?"chip":x.sincronizacao==="Não realizada"?"chip red":"chip warn";
+      return `<tr><td class="mono">${esc(dataBR(x.dataInicio)||x.dataInicio)}<br><small>${esc(hora(x.horaInicio))}–${esc(hora(x.horaFim))}</small></td>
+        <td>${esc(x.supervisor)}</td><td>${esc(x.vtr)}<br><small class="mono">${esc(x.placa)}</small></td>
+        <td class="num">${esc(kmFmt(n(x.kmPercorrido)))}</td><td class="num">${n(x.postosVisitados)}</td>
+        <td class="num">${n(x.faltasRegistradas)}</td><td class="num">${n(x.ocorrenciasQtd)}</td>
+        <td><span class="${sc}">${esc(x.sincronizacao==="Realizada com inconsistência no aplicativo"?"Inconsistência":x.sincronizacao||"—")}</span></td>
+        <td><button type="button" class="btn ghost small" data-ver="${i}">Ver</button></td></tr>`}).join("");
+  }
+  ["fSup","fDe","fAte"].forEach(id=>$(id).addEventListener("change",renderLista));
+  $("btnAtualizar").addEventListener("click",carregarLista);
+  $("tbody").addEventListener("click",e=>{
+    const i=e.target.dataset.ver;if(i==null)return;const x=lista[+i];
+    $("dlgTitle").textContent="Plantão de "+(dataBR(x.dataInicio)||x.dataInicio)+" · "+x.supervisor;
+    $("dlgText").textContent=x.texto||"";$("dlgWa").href=waLink(x.texto||"");
+    $("dlgCopy").onclick=()=>copiar(x.texto||"");
+    $("dlg").showModal();
+  });
+  $("dlg").addEventListener("click",e=>{if(e.target.dataset.close!=null||e.target===$("dlg"))$("dlg").close()});
+  $("btnCsv").addEventListener("click",()=>{
+    const L=filtrados();if(!L.length){toast("Nada para baixar.");return}
+    const cols=[["Data início","dataInicio"],["Hora início","horaInicio"],["Início rota","inicioRota"],["Data término","dataFim"],["Término rota","horaFim"],
+      ["Supervisor","supervisor"],["VTR","vtr"],["Placa","placa"],["KM inicial","kmInicial"],["KM final","kmFinal"],["KM percorrido","kmPercorrido"],
+      ["Postos visitados","postosVisitados"],["Faltas registradas","faltasRegistradas"],["Faltas cobertas","faltasCobertas"],["Sincronização","sincronizacao"],
+      ["Detalhe sincronização","sincronizacaoObs"],["Ocorrências","ocorrenciasQtd"],["Destinos/postos","ocorrencias"],["Faltas no efetivo","faltasEfetivo"],
+      ["Reservas informados","reservasInformados"],["Local de referência","localReferencia"],["Fatos relevantes","fatos"],["Enviado em","criadoEm"]];
+    const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+    const csv="﻿"+cols.map(c=>q(c[0])).join(";")+"\n"+L.map(x=>cols.map(([,k])=>q(k.startsWith("data")?dataBR(x[k])||x[k]:x[k])).join(";")).join("\n");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    a.download="relatorios-de-plantao.csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  });
+
+  /* ---------- início ---------- */
+  if(!API_OK){const b=$("banner");b.hidden=false;b.textContent="Página ainda não ligada à planilha: os relatórios podem ser copiados e enviados no WhatsApp, mas não ficam gravados. Para gravar, cole a URL do Apps Script em API_URL, no início do index.html."}
+  preencherListas();restaurar();
+})();
+</script>
+</body>
+</html>
