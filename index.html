@@ -128,6 +128,12 @@ dialog .df{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding
 .foto .fb{padding:8px;display:flex;flex-direction:column;gap:6px}
 .foto input{padding:7px 8px;font-size:13px;background:var(--surface)}
 .foto-vazio{font-size:14px;color:var(--muted);padding:14px;border:1px dashed var(--line);border-radius:8px;text-align:center;margin-top:12px}
+.assin-box{position:relative;height:190px;border:1px dashed var(--line);border-radius:8px;background:#fff;touch-action:none;overflow:hidden}
+.assin-box.err{border:2px solid var(--danger)}
+.assin-box canvas{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;touch-action:none}
+.assin-box .linha{position:absolute;left:8%;right:8%;bottom:42px;border-top:1px solid #b9c3bd;pointer-events:none}
+.assin-box .ph{position:absolute;left:0;right:0;bottom:16px;text-align:center;font-size:12.5px;color:#8a958f;pointer-events:none}
+.assin-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:10px}
 footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
 </style>
 <script>
@@ -237,6 +243,13 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
       <h2><span class="n">6</span>Considerações finais</h2>
       <p class="lead">O resumo do plantão (postos, km, faltas, sincronização e encerramento) é escrito automaticamente. Aqui você descreve só os fatos relevantes: atestados, coberturas, problemas no posto, na viatura etc.</p>
       <label class="f"><span>Fatos relevantes do plantão</span><textarea id="fatos" placeholder="Ex.: O vigilante Fulano de Tal apresentou atestado médico, o que exigiu cobertura do posto X."></textarea></label>
+    </section>
+
+    <section class="panel" id="secAssin">
+      <h2><span class="n">7</span>Assinatura do supervisor <em style="color:var(--danger);font-style:normal">*</em></h2>
+      <p class="lead">Assine com o dedo (no celular) ou com o mouse dentro do quadro. A assinatura vai para o PDF, acima do seu nome.</p>
+      <div class="assin-box" id="assinBox"><span class="linha"></span><span class="ph" id="assinPh">Assine acima da linha</span><canvas id="assin" aria-label="Quadro de assinatura"></canvas></div>
+      <div class="assin-foot"><span class="hint" id="assinNome"></span><button type="button" class="btn ghost small" id="assinLimpar">Limpar assinatura</button></div>
     </section>
   </form>
 
@@ -505,9 +518,14 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
     doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...TINTA);
     paragrafos(d).forEach(p=>{const ls=doc.splitTextToSize(p,W-2*M-2);ls.forEach(l=>{novaPag(6);doc.text(l,M+1,y);y+=5});y+=2.5});
     // assinatura
-    novaPag(30);y+=12;doc.setDrawColor(...TINTA);doc.setLineWidth(.3);doc.line(W/2-40,y,W/2+40,y);
-    doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(d.supervisor.toUpperCase(),W/2,y+5,{align:"center"});
-    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...CINZA);doc.text("Supervisor responsável",W/2,y+9.5,{align:"center"});y+=18;
+    novaPag(40);y+=26;
+    const as=assinaturaPNG();
+    if(as){const k=Math.min(76/as.w,24/as.h),iw=as.w*k,ih=as.h*k;doc.addImage(as.data,"PNG",W/2-iw/2,y-1-ih,iw,ih,"assinatura","FAST")}
+    doc.setDrawColor(...TINTA);doc.setLineWidth(.3);doc.line(W/2-40,y,W/2+40,y);
+    doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...TINTA);doc.text(d.supervisor.toUpperCase(),W/2,y+5,{align:"center"});
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...CINZA);doc.text("Supervisor responsável",W/2,y+9.5,{align:"center"});
+    if(as){doc.setFontSize(7.5);doc.text("Assinado digitalmente em "+carimbo(),W/2,y+13.5,{align:"center"})}
+    y+=20;
     // fotos
     if(fotos.length){
       novaPag(80);titulo("REGISTRO FOTOGRÁFICO DA VIATURA  –  "+d.vtr+" / "+d.placa);
@@ -541,7 +559,11 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
     $("kmPercorrido").value=d.km!=null?kmFmt(d.km)+" km":(d.kmI!=null&&d.kmF!=null?"KM final menor que o inicial":"—");
     $("boxCobertas").hidden=!(parseInt(d.faltasRegistradas,10)>0);
     $("preview").textContent=gerarTexto(d);
-    const rasc={id:draftId,ocorr:ocorr,faltasCobertas:$("faltasCobertas").checked};CAMPOS.forEach(c=>rasc[c]=$(c).value);
+    $("assinNome").textContent=d.supervisor?"Assinatura de "+d.supervisor.toUpperCase():"";
+    salvarRascunho();
+  }
+  function salvarRascunho(){
+    const rasc={id:draftId,ocorr:ocorr,faltasCobertas:$("faltasCobertas").checked,tracos:tracos};CAMPOS.forEach(c=>rasc[c]=$(c).value);
     store.set(LS_DRAFT,rasc);
   }
   $("form").addEventListener("input",e=>{if(e.target.getAttribute("aria-invalid"))e.target.removeAttribute("aria-invalid");atualizar()});
@@ -581,7 +603,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
   function novoForm(manterSup){
     const m=mem().ultimo||{};
     CAMPOS.forEach(c=>$(c).value="");
-    $("faltasCobertas").checked=true;ocorr=[];draftId=uid();fotos=[];idb.clear();renderFotos();
+    $("faltasCobertas").checked=true;ocorr=[];draftId=uid();fotos=[];idb.clear();renderFotos();tracos=[];desenharAssin();
     if(manterSup!==false){$("supervisor").value=m.supervisor||"";$("vtr").value=m.vtr||"";$("placa").value=m.placa||""}
     const h=hojeISO();$("dataInicio").value=h;$("dataFim").value=somaDia(h,1);$("horaInicio").value="18:00";
     document.querySelectorAll("[aria-invalid]").forEach(x=>x.removeAttribute("aria-invalid"));
@@ -593,8 +615,43 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
     CAMPOS.forEach(c=>{if(r[c]!=null)$(c).value=r[c]});
     $("faltasCobertas").checked=r.faltasCobertas!==false;
     ocorr=Array.isArray(r.ocorr)?r.ocorr:[];draftId=r.id||uid();
+    tracos=Array.isArray(r.tracos)?r.tracos:[];
     renderOc();sugerirKm();atualizar();
     idb.all().then(l=>{fotos=(l||[]).sort((a,b)=>a.ordem-b.ordem);renderFotos();atualizar()});
+  }
+
+  /* ---------- assinatura digital ---------- */
+  let tracos=[];             // cada traço: lista de pontos [x,y] normalizados (0..1) dentro do quadro
+  const cv=$("assin");
+  function ajustarCanvas(){const r=cv.getBoundingClientRect(),k=window.devicePixelRatio||1;if(!r.width)return;
+    cv.width=Math.round(r.width*k);cv.height=Math.round(r.height*k);desenharAssin()}
+  function tracar(g,lista,w,h,esp){
+    g.lineCap="round";g.lineJoin="round";g.strokeStyle="#0b2a5b";g.lineWidth=esp;
+    lista.forEach(t=>{if(!t.length)return;g.beginPath();g.moveTo(t[0][0]*w,t[0][1]*h);
+      if(t.length===1){g.lineTo(t[0][0]*w+.1,t[0][1]*h+.1)}
+      for(let i=1;i<t.length-1;i++){const mx=(t[i][0]+t[i+1][0])/2*w,my=(t[i][1]+t[i+1][1])/2*h;g.quadraticCurveTo(t[i][0]*w,t[i][1]*h,mx,my)}
+      if(t.length>1){const l=t[t.length-1];g.lineTo(l[0]*w,l[1]*h)}
+      g.stroke()});
+  }
+  function desenharAssin(){const g=cv.getContext("2d");g.clearRect(0,0,cv.width,cv.height);tracar(g,tracos,cv.width,cv.height,2.4*(window.devicePixelRatio||1));
+    $("assinPh").hidden=tracos.length>0;$("assinBox").classList.toggle("err",false)}
+  let ativo=null;
+  const pt=e=>{const r=cv.getBoundingClientRect();return[Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))]};
+  cv.addEventListener("pointerdown",e=>{e.preventDefault();cv.setPointerCapture(e.pointerId);ativo=[pt(e)];tracos.push(ativo);desenharAssin()});
+  cv.addEventListener("pointermove",e=>{if(!ativo)return;e.preventDefault();ativo.push(pt(e));desenharAssin()});
+  const fim=()=>{if(!ativo)return;ativo=null;salvarRascunho()};
+  cv.addEventListener("pointerup",fim);cv.addEventListener("pointercancel",fim);
+  $("assinLimpar").addEventListener("click",()=>{tracos=[];desenharAssin();salvarRascunho()});
+  window.addEventListener("resize",ajustarCanvas);
+  /* imagem recortada da assinatura, em alta resolução, para o PDF */
+  function assinaturaPNG(){
+    if(!tracos.length)return null;
+    const r=cv.getBoundingClientRect(),W=900,H=Math.round(900*(r.height||190)/(r.width||600));
+    const c=document.createElement("canvas");c.width=W;c.height=H;tracar(c.getContext("2d"),tracos,W,H,4.5);
+    let x0=1,y0=1,x1=0,y1=0;tracos.flat().forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)});
+    const pad=10,sx=Math.max(0,Math.floor(x0*W)-pad),sy=Math.max(0,Math.floor(y0*H)-pad),sw=Math.min(W,Math.ceil(x1*W)+pad)-sx,sh=Math.min(H,Math.ceil(y1*H)+pad)-sy;
+    const o=document.createElement("canvas");o.width=Math.max(1,sw);o.height=Math.max(1,sh);o.getContext("2d").drawImage(c,sx,sy,sw,sh,0,0,sw,sh);
+    return{data:o.toDataURL("image/png"),w:o.width,h:o.height};
   }
 
   /* ---------- validação ---------- */
@@ -608,6 +665,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
     if(!msg&&(d.dataFim+d.horaFim)<=(d.dataInicio+d.horaInicio)){$("dataFim").setAttribute("aria-invalid","true");$("horaFim").setAttribute("aria-invalid","true");msg="O término precisa ser depois do início do plantão."}
     ["postosVisitados","faltasRegistradas","faltasEfetivo","reservasInformados"].forEach(c=>{if(!msg&&parseInt($(c).value,10)<0){$(c).setAttribute("aria-invalid","true");msg="Os números não podem ser negativos."}});
     if(!msg&&ocorr.some(o=>(o.destino.trim()||o.posto.trim())&&!(o.destino.trim()&&o.posto.trim())))msg="Em cada ocorrência, informe o destino e o posto.";
+    if(!msg&&!tracos.length){msg="Falta a assinatura: assine no quadro do item 7.";$("assinBox").classList.add("err");$("secAssin").scrollIntoView({behavior:"smooth",block:"center"});$("formMsg").hidden=false;$("formMsg").textContent=msg;return false}
     const box=$("formMsg");box.hidden=!msg;box.textContent=msg;
     if(msg){const el=document.querySelector("[aria-invalid]");if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.focus({preventScroll:true})}else box.scrollIntoView({behavior:"smooth",block:"center"})}
     return !msg;
@@ -735,7 +793,7 @@ footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 28px}
 
   /* ---------- início ---------- */
   if(!API_OK){const b=$("banner");b.hidden=false;b.textContent="Página ainda não ligada à planilha: o PDF é gerado e pode ser enviado no WhatsApp, mas o relatório não fica gravado. Para gravar, cole a URL do Apps Script em API_URL, no início do index.html."}
-  preencherListas();restaurar();
+  preencherListas();restaurar();requestAnimationFrame(ajustarCanvas);
 })();
 </script>
 </body>

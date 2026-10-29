@@ -27,7 +27,8 @@ Sem a URL o site já gera o PDF e manda no WhatsApp, só não grava na planilha.
 - Calcula o KM percorrido e lembra, no aparelho, o supervisor, a VTR, a placa e o último KM final de cada placa (vira o KM inicial do próximo plantão).
 - Fotos da viatura: botão **Tirar foto** (abre a câmera traseira) ou **Escolher da galeria**. Cada foto ganha carimbo de data e hora, legenda (Frente, Painel / odômetro, Avaria…) e é reduzida para o PDF não ficar pesado.
 - **Gerar PDF e enviar**: monta o PDF com logo, quadros, considerações, assinatura e registro fotográfico. No celular, **Enviar PDF no WhatsApp** abre o compartilhamento do aparelho com o arquivo; no computador, o PDF é baixado para anexar.
-- Salva o rascunho e as fotos no aparelho enquanto o supervisor preenche (não se perde se fechar a página).
+- **Assinatura digital** (item 7): o supervisor assina com o dedo ou o mouse; a assinatura entra no PDF acima do nome dele, com a data e a hora. Sem assinatura o PDF não é gerado.
+- Salva o rascunho, a assinatura e as fotos no aparelho enquanto o supervisor preenche (não se perde se fechar a página).
 - Escreve as considerações finais automaticamente (postos, km, faltas, ocorrências, sincronização e encerramento); o supervisor só descreve os fatos relevantes.
 - Aba **Relatórios enviados**: lista da planilha com filtro por supervisor e período, totais, relatório completo, link do PDF e download em CSV.
 
